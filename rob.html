@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pokédex</title>
+  <style>
+    /* CSS styles */
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .pokemon-image {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+    }
+    .info {
+      margin-top: 20px;
+    }
+    .pokemon-stats {
+      list-style: none;
+      padding: 0;
+    }
+    .pokemon-search-container {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pokédex</h1>
+    <div class="pokemon-search-container">
+      <input type="text" class="pokemon-search-input" placeholder="Enter Pokémon name">
+      <button class="pokemon-search-button">Search</button>
+    </div>
+    <div class="pokemon-info">
+      <img class="pokemon-image" src="" alt="Pokemon Image">
+      <div class="info">
+        <h2 class="pokemon-name"></h2>
+        <p><strong>Type:</strong> <span class="pokemon-type"></span></p>
+        <p><strong>Height:</strong> <span class="pokemon-height"></span></p>
+        <p><strong>Weight:</strong> <span class="pokemon-weight"></span></p>
+        <p class="pokemon-bio"></p>
+        <ul class="pokemon-stats"></ul>
+      </div>
+    </div>
+    <div class="navigation">
+      <button class="previous-btn">Previous</button>
+      <button class="next-btn">Next</button>
+    </div>
+  </div>
+
+  <script>
+    // JavaScript code
+    let pokemonData = localStorage.getItem("pokemonData") ? JSON.parse(localStorage.getItem("pokemonData")) : [];
+
+    let currentIndex = 0;
+    const pokemonImageElement = document.querySelector(".pokemon-image");
+    const pokemonNameElement = document.querySelector(".pokemon-name");
+    const pokemonTypeElement = document.querySelector(".pokemon-type");
+    const pokemonHeightElement = document.querySelector(".pokemon-height");
+    const pokemonWeightElement = document.querySelector(".pokemon-weight");
+    const pokemonBioElement = document.querySelector(".pokemon-bio");
+    const pokemonStatsElement = document.querySelector(".pokemon-stats");
+    const previousBtn = document.querySelector(".previous-btn");
+    const nextBtn = document.querySelector(".next-btn");
+    const pokemonSearchInput = document.querySelector(".pokemon-search-input");
+    const pokemonSearchButton = document.querySelector(".pokemon-search-button");
+
+    function displayPokemon() {
+      const currentPokemon = pokemonData[currentIndex];
+      pokemonImageElement.src = currentPokemon.image;
+      pokemonNameElement.textContent = currentPokemon.name;
+      pokemonTypeElement.textContent = currentPokemon.type;
+      pokemonHeightElement.textContent = currentPokemon.height;
+      pokemonWeightElement.textContent = currentPokemon.weight;
+      pokemonBioElement.textContent = currentPokemon.bio;
+
+      pokemonStatsElement.innerHTML = "";
+      for (const stat in currentPokemon.stats) {
+        const statItem = document.createElement("li");
+        statItem.innerHTML = `<strong>${stat.toUpperCase()}:</strong> ${currentPokemon.stats[stat]}`;
+        pokemonStatsElement.appendChild(statItem);
+      }
+    }
+
+    function showPreviousPokemon() {
+      currentIndex = (currentIndex - 1 + pokemonData.length) % pokemonData.length;
+      displayPokemon();
+    }
+
+    function showNextPokemon() {
+      currentIndex = (currentIndex + 1) % pokemonData.length;
+      displayPokemon();
+    }
+
+    function fetchPokemonData(pokemonName) {
+      fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`)
+        .then(response => response.json())
+        .then(data => {
+          const pokemon = {
+            name: data.name,
+            type: data.types.map(type => type.type.name).join(" / "),
+            height: `${data.height / 10} m`,
+            weight: `${data.weight / 10} kg`,
+            bio: "Stats",
+            image: data.sprites.other["official-artwork"].front_default,
+            stats: {
+              hp: data.stats[0].base_stat,
+              attack: data.stats[1].base_stat,
+              defense: data.stats[2].base_stat,
+              speed: data.stats[5].base_stat
+            }
+          };
+
+          pokemonData = [pokemon];
+          localStorage.setItem("pokemonData", JSON.stringify(pokemonData));
+          displayPokemon();
+        })
+        .catch(error => {
+          console.log("Error fetching Pokémon data:", error);
+        });
+    }
+
+    function searchPokemon() {
+      const searchTerm = pokemonSearchInput.value.toLowerCase();
+      const foundPokemon = pokemonData.find(pokemon => pokemon.name.toLowerCase() === searchTerm);
+
+      if (foundPokemon) {
+        const foundIndex = pokemonData.indexOf(foundPokemon);
+        currentIndex = foundIndex;
+        displayPokemon();
+      } else {
+        fetchPokemonData(searchTerm);
+      }
+    }
+
+    previousBtn.addEventListener("click", showPreviousPokemon);
+    nextBtn.addEventListener("click", showNextPokemon);
+    pokemonSearchButton.addEventListener("click", searchPokemon);
+
+    displayPokemon();
+  </script>
+</body>
+</html>
